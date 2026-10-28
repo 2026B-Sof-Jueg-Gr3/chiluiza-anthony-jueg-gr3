@@ -348,18 +348,15 @@ var SpaceEaters;
             /** Factores de escala del mundo respecto al tamaño lógico de referencia. */
             this.scaleX = 1;
             this.scaleY = 1;
-            /** Textos creados por la escena, para reajustar su nitidez al redimensionar. */
-            this.texts = [];
         }
         create() {
-            this.texts.length = 0;
             this.applyScale();
             this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
             this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
             this.build();
             this.layout();
         }
-        /** Crea un texto con la fuente pixel y registra su resolución. */
+        /** Crea un texto con la fuente pixel y el origen centrado. */
         createText(x, y, content, size, color, align = 'center') {
             const text = this.add.text(x, y, content, {
                 fontFamily: FONT_FAMILY,
@@ -369,14 +366,23 @@ var SpaceEaters;
                 resolution: this.textResolution()
             });
             text.setOrigin(0.5, 0.5);
-            this.texts.push(text);
             return text;
         }
-        /** Recalcula la resolución interna de todos los textos (nitidez). */
+        /**
+         * Recalcula la resolución interna de todos los textos para que no se vean
+         * borrosos al ampliar el lienzo.
+         *
+         * Se recorre la lista de objetos vivos de la escena y NO un registro propio:
+         * los textos temporales (avisos de nivel) se destruyen solos, y guardar sus
+         * referencias hacía que `setResolution()` trabajara sobre un canvas ya
+         * liberado. Esa excepción cortaba el bucle de Phaser y congelaba el juego.
+         */
         refreshTextResolution() {
             const resolution = this.textResolution();
-            for (const text of this.texts) {
-                text.setResolution(resolution);
+            for (const child of this.children.list) {
+                if (child instanceof Phaser.GameObjects.Text) {
+                    child.setResolution(resolution);
+                }
             }
         }
         textResolution() {

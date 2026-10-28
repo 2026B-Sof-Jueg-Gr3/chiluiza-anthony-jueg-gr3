@@ -421,11 +421,7 @@ namespace SpaceEaters {
     protected scaleX = 1;
     protected scaleY = 1;
 
-    /** Textos creados por la escena, para reajustar su nitidez al redimensionar. */
-    protected readonly texts: Phaser.GameObjects.Text[] = [];
-
     public create(): void {
-      this.texts.length = 0;
       this.applyScale();
 
       this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
@@ -441,7 +437,7 @@ namespace SpaceEaters {
     /** Reubica los objetos según `worldWidth` / `worldHeight`. */
     protected abstract layout(): void;
 
-    /** Crea un texto con la fuente pixel y registra su resolución. */
+    /** Crea un texto con la fuente pixel y el origen centrado. */
     protected createText(
       x: number,
       y: number,
@@ -459,15 +455,25 @@ namespace SpaceEaters {
       });
 
       text.setOrigin(0.5, 0.5);
-      this.texts.push(text);
       return text;
     }
 
-    /** Recalcula la resolución interna de todos los textos (nitidez). */
+    /**
+     * Recalcula la resolución interna de todos los textos para que no se vean
+     * borrosos al ampliar el lienzo.
+     *
+     * Se recorre la lista de objetos vivos de la escena y NO un registro propio:
+     * los textos temporales (avisos de nivel) se destruyen solos, y guardar sus
+     * referencias hacía que `setResolution()` trabajara sobre un canvas ya
+     * liberado. Esa excepción cortaba el bucle de Phaser y congelaba el juego.
+     */
     protected refreshTextResolution(): void {
       const resolution = this.textResolution();
-      for (const text of this.texts) {
-        text.setResolution(resolution);
+
+      for (const child of this.children.list) {
+        if (child instanceof Phaser.GameObjects.Text) {
+          child.setResolution(resolution);
+        }
       }
     }
 
