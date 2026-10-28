@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "moduleResolution": "node",
+
+    /* Strictness: the assignment requires strict TypeScript. */
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* `game.ts` has no imports: the emitted `game.js` stays a classic script
+       so `index.html` can load it with a plain <script> tag (no bundler). */
+    "removeComments": false,
+    "sourceMap": false,
+    "skipLibCheck": true
+  },
+  "files": ["game.ts"]
+}

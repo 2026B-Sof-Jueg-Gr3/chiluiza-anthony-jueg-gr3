@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Space Eaters — shooter vertical retro 8-bit hecho con Phaser 3 y TypeScript."
+    />
+    <title>SPACE EATERS · Phaser 3</title>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%23000'/%3E%3Crect x='3' y='1' width='2' height='2' fill='%2329adff'/%3E%3Crect x='2' y='3' width='4' height='3' fill='%23c2c3c7'/%3E%3Crect x='1' y='6' width='6' height='1' fill='%2383769c'/%3E%3C/svg%3E"
+    />
+
+    <!-- Fuente pixel-art (con reserva a monospace si el CDN no responde). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000000;
+        /* Evita el "rebote" y el zoom accidental en móviles. */
+        overscroll-behavior: none;
+        touch-action: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* Contenedor a pantalla completa: Phaser mide este elemento. */
+      #game {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* El lienzo lo dimensiona Phaser (Scale.RESIZE); solo quitamos el gap. */
+      #game canvas {
+        display: block;
+        margin: 0 auto;
+      }
+
+      /* Pantalla de carga: se retira cuando el juego arranca. */
+      #loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000000;
+        color: #00e436;
+        font-family: "Press Start 2P", "Courier New", monospace;
+        font-size: 12px;
+        letter-spacing: 1px;
+        z-index: 10;
+        transition: opacity 320ms ease;
+      }
+
+      #loader.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #loader span {
+        animation: blink 900ms steps(2, start) infinite;
+      }
+
+      @keyframes blink {
+        to {
+          opacity: 0.15;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #loader span {
+          animation: none;
+        }
+      }
+
+      noscript {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        color: #fff1e8;
+        font-family: "Courier New", monospace;
+        text-align: center;
+        z-index: 20;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="game" aria-label="Space Eaters, juego de naves"></div>
+
+    <div id="loader" role="status" aria-live="polite">
+      <span>CARGANDO…</span>
+    </div>
+
+    <noscript>Este juego necesita JavaScript activado para poder ejecutarse.</noscript>
+
+    <!-- 1. Phaser 3 desde CDN (queda como global `Phaser`). -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+
+    <!-- 2. Lógica del juego compilada desde TypeScript (game.ts -> game.js). -->
+    <script src="game.js"></script>
+
+    <script>
+      // Retira la pantalla de carga en cuanto Phaser crea el lienzo.
+      (function () {
+        var loader = document.getElementById('loader');
+        var label = loader ? loader.querySelector('span') : null;
+        var finished = false;
+
+        function stopLoader() {
+          if (finished || !loader) return;
+          finished = true;
+          loader.classList.add('is-hidden');
+          window.setTimeout(function () {
+            if (loader.parentNode) loader.parentNode.removeChild(loader);
+          }, 400);
+        }
+
+        function showError(message) {
+          if (finished || !label) return;
+          finished = true;
+          label.textContent = message;
+          label.style.animation = 'none';
+        }
+
+        var timer = window.setInterval(function () {
+          if (document.querySelector('#game canvas')) {
+            window.clearInterval(timer);
+            stopLoader();
+          }
+        }, 60);
+
+        // Red de seguridad: si Phaser no llega a arrancar, avisamos en pantalla.
+        window.setTimeout(function () {
+          window.clearInterval(timer);
+          if (document.querySelector('#game canvas')) {
+            stopLoader();
+          } else {
+            showError('ERROR AL CARGAR EL JUEGO');
+          }
+        }, 8000);
+      })();
+    </script>
+  </body>
+</html>

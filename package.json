@@ -1,0 +1,15 @@
+{
+  "name": "space-eaters-phaser",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Space Eaters - retro 8-bit vertical shooter built with Phaser 3 + TypeScript",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "serve": "npx --yes http-server . -p 8080 -c-1"
+  },
+  "devDependencies": {
+    "phaser": "^3.90.0",
+    "typescript": "^5.6.3"
+  }
+}
