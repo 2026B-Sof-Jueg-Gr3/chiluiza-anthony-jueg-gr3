@@ -1,171 +1,1707 @@
 <!DOCTYPE html>
 <html lang="es">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SPACE EATERS · La última línea de defensa</title>
     <meta
       name="description"
-      content="Space Eaters — shooter vertical retro 8-bit hecho con Phaser 3 y TypeScript."
+      content="Space Eaters: shooter espacial 8-bit donde la humanidad es la última línea de defensa. Hecho con Phaser 3 y TypeScript."
     />
-    <title>SPACE EATERS · Phaser 3</title>
+    <meta name="theme-color" content="#000000" />
 
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%23000'/%3E%3Crect x='3' y='1' width='2' height='2' fill='%2329adff'/%3E%3Crect x='2' y='3' width='4' height='3' fill='%23c2c3c7'/%3E%3Crect x='1' y='6' width='6' height='1' fill='%2383769c'/%3E%3C/svg%3E"
     />
 
-    <!-- Fuente pixel-art (con reserva a monospace si el CDN no responde). -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
       rel="stylesheet"
     />
 
+    <!-- Marca el documento como "con JS" antes de pintar, para que las
+         animaciones de entrada no oculten contenido si el script falla. -->
+    <script>
+      document.documentElement.classList.add("js");
+    </script>
+
     <style>
+      /* =====================================================================
+         SPACE EATERS — Landing page
+         Paleta: PICO-8 (la misma del juego). Tipografía: Press Start 2P + VT323.
+         ================================================================== */
+
       :root {
-        color-scheme: dark;
+        --void: #000000;
+        --ink: #03040c;
+        --panel: #0a0d1c;
+        --panel-2: #111634;
+        --blue: #29adff;
+        --blue-deep: #1d2b53;
+        --green: #00e436;
+        --green-deep: #006b2b;
+        --red: #ff004d;
+        --orange: #ffa300;
+        --yellow: #ffec27;
+        --white: #fff1e8;
+        --lav: #9387ad;
+        --grey: #c2c3c7;
+        --pink: #ff77a8;
+        --body: #cfd3ea;
+
+        --px: "Press Start 2P", "Courier New", monospace;
+        --mono: "VT323", ui-monospace, "Courier New", monospace;
       }
 
-      * {
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
       }
 
-      html,
+      html {
+        scroll-behavior: smooth;
+        background: var(--void);
+      }
+
       body {
         margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: #000000;
-        /* Evita el "rebote" y el zoom accidental en móviles. */
-        overscroll-behavior: none;
-        touch-action: none;
-        -webkit-tap-highlight-color: transparent;
+        min-height: 100%;
+        background: var(--void);
+        color: var(--body);
+        font-family: var(--mono);
+        font-size: 21px;
+        line-height: 1.45;
+        overflow-x: hidden;
+        -webkit-font-smoothing: none;
+        text-rendering: optimizeSpeed;
       }
 
-      /* Contenedor a pantalla completa: Phaser mide este elemento. */
-      #game {
+      ::selection {
+        background: var(--green);
+        color: #001a06;
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 4px;
+      }
+
+      a:hover {
+        color: var(--yellow);
+      }
+
+      :focus-visible {
+        outline: 3px dashed var(--yellow);
+        outline-offset: 5px;
+      }
+
+      /* ------------------------------- Fondo ------------------------------ */
+
+      #stars {
         position: fixed;
         inset: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-      }
-
-      /* El lienzo lo dimensiona Phaser (Scale.RESIZE); solo quitamos el gap. */
-      #game canvas {
+        z-index: 1;
         display: block;
-        margin: 0 auto;
-      }
-
-      /* Pantalla de carga: se retira cuando el juego arranca. */
-      #loader {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #000000;
-        color: #00e436;
-        font-family: "Press Start 2P", "Courier New", monospace;
-        font-size: 12px;
-        letter-spacing: 1px;
-        z-index: 10;
-        transition: opacity 320ms ease;
-      }
-
-      #loader.is-hidden {
-        opacity: 0;
+        width: 100%;
+        height: 100%;
         pointer-events: none;
       }
 
-      #loader span {
-        animation: blink 900ms steps(2, start) infinite;
+      /* Nebulosa de fondo: capas de color muy diluidas. */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(60% 45% at 12% 4%, rgba(126, 37, 83, 0.34), transparent 70%),
+          radial-gradient(55% 42% at 92% 18%, rgba(29, 43, 83, 0.75), transparent 72%),
+          radial-gradient(75% 60% at 50% 112%, rgba(0, 135, 81, 0.2), transparent 70%);
       }
 
+      /* Rejilla de píxeles tenue, para que el negro no sea un negro plano. */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(41, 173, 255, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(41, 173, 255, 0.05) 1px, transparent 1px);
+        background-size: 64px 64px;
+        mask-image: radial-gradient(ellipse at 50% 30%, #000 0%, transparent 78%);
+        -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 0%, transparent 78%);
+      }
+
+      /* Monitor CRT: líneas de barrido + viñeta. */
+      .crt {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.22) 0 1px,
+          transparent 1px 4px
+        );
+        opacity: 0.55;
+      }
+
+      .crt::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.8) 100%);
+      }
+
+      /* -------------------------------- HUD ------------------------------- */
+
+      .hud {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 11px clamp(12px, 3vw, 30px);
+        font-family: var(--px);
+        font-size: 8px;
+        letter-spacing: 0.08em;
+        color: var(--lav);
+        background: linear-gradient(#000 30%, rgba(0, 0, 0, 0.72) 80%, transparent);
+        border-bottom: 1px solid rgba(41, 173, 255, 0.16);
+      }
+
+      .hud p {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        white-space: nowrap;
+      }
+
+      .hud__cell--mid {
+        color: rgba(194, 195, 199, 0.6);
+      }
+
+      .hud__cell--end {
+        margin-left: auto;
+      }
+
+      .led {
+        width: 8px;
+        height: 8px;
+        background: var(--green);
+        box-shadow: 0 0 10px rgba(0, 228, 54, 0.9);
+        animation: blink 1.6s steps(2, end) infinite;
+      }
+
+      .led--red {
+        background: var(--red);
+        box-shadow: 0 0 10px rgba(255, 0, 77, 0.9);
+      }
+
+      .hearts {
+        display: inline-flex;
+        gap: 5px;
+      }
+
+      /* Corazón real del atlas: celda 4.7 de la hoja 16x16. */
+      .hearts i {
+        width: 14px;
+        height: 14px;
+        background-image: url("assets/pico8_invaders_sprites_LARGE.png");
+        background-repeat: no-repeat;
+        background-size: 1600% 1600%;
+        background-position: 26.6667% 46.6667%;
+        image-rendering: pixelated;
+        mix-blend-mode: screen;
+      }
+
+      /* ------------------------------- Hero ------------------------------- */
+
+      main {
+        position: relative;
+        z-index: 2;
+      }
+
+      .hero {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100svh - 42px);
+        padding: clamp(26px, 4vw, 52px) clamp(16px, 4vw, 28px) clamp(30px, 4vw, 52px);
+        text-align: center;
+        overflow: hidden;
+      }
+
+      /* Línea de barrido que recorre el hero cada 9 s. */
+      .hero::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: -20%;
+        height: 140px;
+        background: linear-gradient(to bottom, transparent, rgba(41, 173, 255, 0.07), transparent);
+        animation: sweep-down 9s linear infinite;
+        pointer-events: none;
+      }
+
+      .eyebrow {
+        margin: 0;
+        font-family: var(--px);
+        font-size: clamp(7px, 1.1vw, 10px);
+        letter-spacing: 0.16em;
+        color: var(--green);
+      }
+
+      .logo {
+        margin: clamp(18px, 3vw, 28px) 0 0;
+        font-family: var(--px);
+        font-size: clamp(21px, 5.2vw, 100px);
+        line-height: 1.16;
+        letter-spacing: 0.01em;
+        color: var(--white);
+        text-shadow:
+          0 4px 0 #7e2553,
+          0 8px 0 var(--blue-deep),
+          0 12px 0 #000,
+          0 0 46px rgba(41, 173, 255, 0.4);
+      }
+
+      .logo em {
+        font-style: normal;
+        color: var(--green);
+        text-shadow:
+          0 4px 0 var(--green-deep),
+          0 8px 0 var(--blue-deep),
+          0 12px 0 #000,
+          0 0 50px rgba(0, 228, 54, 0.42);
+      }
+
+      .tagline {
+        margin: clamp(16px, 2.6vw, 24px) 0 0;
+        font-family: var(--px);
+        font-size: clamp(8px, 1.35vw, 13px);
+        letter-spacing: 0.22em;
+        color: var(--blue);
+      }
+
+      /* --------------------------- Transmisión ---------------------------- */
+
+      .transmission {
+        position: relative;
+        width: min(760px, 100%);
+        margin: clamp(20px, 3vw, 30px) 0 0;
+        padding: 18px clamp(18px, 3vw, 28px) 16px;
+        text-align: left;
+        background:
+          linear-gradient(180deg, rgba(0, 228, 54, 0.06), rgba(0, 228, 54, 0.015));
+        border-left: 4px solid var(--green);
+        box-shadow:
+          inset 0 0 0 1px rgba(0, 228, 54, 0.16),
+          0 0 50px rgba(0, 228, 54, 0.08);
+      }
+
+      .transmission::before,
+      .transmission::after {
+        content: "";
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background: var(--green);
+      }
+
+      .transmission::before {
+        top: -4px;
+        right: -4px;
+      }
+
+      .transmission::after {
+        bottom: -4px;
+        right: -4px;
+      }
+
+      .transmission__meta {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0 0 12px;
+        font-family: var(--px);
+        font-size: 7px;
+        letter-spacing: 0.14em;
+        color: var(--red);
+      }
+
+      .logline {
+        margin: 0;
+        font-size: clamp(20px, 2.4vw, 25px);
+        line-height: 1.42;
+        color: #e7e4f7;
+      }
+
+      .logline strong {
+        color: var(--white);
+        font-weight: 400;
+        background: rgba(0, 228, 54, 0.14);
+        box-shadow: 0 2px 0 var(--green);
+      }
+
+      .logline .alien {
+        color: var(--pink);
+      }
+
+      .transmission__sign {
+        margin: 14px 0 0;
+        font-family: var(--px);
+        font-size: 7px;
+        letter-spacing: 0.1em;
+        color: var(--lav);
+        text-align: right;
+      }
+
+      /* ------------------------------ Botón ------------------------------- */
+
+      .play {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(12px, 2.4vw, 26px);
+        margin: clamp(24px, 3.4vw, 34px) 0 0;
+        padding: clamp(18px, 2.6vw, 28px) clamp(34px, 6vw, 66px);
+        font-family: var(--px);
+        font-size: clamp(22px, 4.4vw, 44px);
+        line-height: 1;
+        letter-spacing: 0.08em;
+        color: #001a06;
+        text-decoration: none;
+        background: var(--green);
+        border: 4px solid #001a06;
+        overflow: hidden;
+        cursor: pointer;
+        transform: translateZ(0);
+        box-shadow:
+          0 10px 0 var(--green-deep),
+          0 10px 0 4px #001a06;
+        animation: glow 2.6s ease-in-out infinite;
+        transition:
+          background 120ms steps(2, end),
+          transform 90ms steps(2, end),
+          box-shadow 90ms steps(2, end);
+      }
+
+      /* Destello diagonal que recorre el botón. */
+      .play::after {
+        content: "";
+        position: absolute;
+        top: -20%;
+        bottom: -20%;
+        left: 0;
+        width: 45%;
+        background: linear-gradient(
+          100deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.55) 50%,
+          transparent 100%
+        );
+        transform: translateX(-220%) skewX(-18deg);
+        animation: shine 3.4s ease-in-out infinite;
+        pointer-events: none;
+      }
+
+      .play__label {
+        position: relative;
+        z-index: 2;
+      }
+
+      .play__tri {
+        position: relative;
+        z-index: 2;
+        width: 15px;
+        height: 18px;
+        background: currentColor;
+        clip-path: polygon(100% 0, 100% 100%, 0 50%);
+        animation: nudge-l 1.1s steps(2, end) infinite;
+      }
+
+      .play__tri--r {
+        clip-path: polygon(0 0, 0 100%, 100% 50%);
+        animation-name: nudge-r;
+        animation-delay: 0.55s;
+      }
+
+      .play:hover {
+        color: #2a1200;
+        background: var(--yellow);
+        transform: translateY(-4px);
+        box-shadow:
+          0 14px 0 var(--orange),
+          0 14px 0 4px #2a1200;
+      }
+
+      .play:active {
+        transform: translateY(7px);
+        box-shadow:
+          0 3px 0 var(--green-deep),
+          0 3px 0 4px #001a06;
+      }
+
+      .play:focus-visible {
+        outline: 4px dashed var(--yellow);
+        outline-offset: 10px;
+      }
+
+      .insert {
+        margin: 18px 0 0;
+        font-family: var(--px);
+        font-size: clamp(7px, 1vw, 9px);
+        letter-spacing: 0.12em;
+        color: rgba(194, 195, 199, 0.55);
+        animation: blink 2.2s steps(2, end) infinite;
+      }
+
+      kbd {
+        display: inline-block;
+        padding: 3px 6px;
+        font-family: var(--px);
+        font-size: 0.9em;
+        color: var(--white);
+        background: var(--panel-2);
+        border: 1px solid var(--lav);
+        box-shadow: 0 2px 0 #000;
+      }
+
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0;
+        margin: clamp(20px, 3vw, 30px) 0 0;
+        padding: 0;
+        list-style: none;
+        font-family: var(--px);
+        font-size: 8px;
+        letter-spacing: 0.1em;
+        color: var(--lav);
+      }
+
+      .stats li {
+        padding: 0 clamp(12px, 2vw, 22px);
+        border-left: 1px solid rgba(131, 118, 156, 0.4);
+      }
+
+      .stats li:first-child {
+        border-left: 0;
+      }
+
+      .stats b {
+        color: var(--green);
+        font-weight: 400;
+      }
+
+      /* --------------------------- Oleada de fondo ------------------------ */
+
+      .wave {
+        position: relative;
+        z-index: 2;
+        overflow: hidden;
+        padding: 16px 0;
+        background: rgba(0, 0, 0, 0.55);
+        border-top: 1px solid rgba(41, 173, 255, 0.18);
+        border-bottom: 1px solid rgba(41, 173, 255, 0.18);
+      }
+
+      .wave__track {
+        display: flex;
+        width: max-content;
+        animation: drift 44s linear infinite;
+      }
+
+      .wave:hover .wave__track {
+        animation-play-state: paused;
+      }
+
+      .sprite {
+        display: block;
+        width: 34px;
+        height: 34px;
+        margin-right: 42px;
+        background-image: url("assets/pico8_invaders_sprites_LARGE.png");
+        background-repeat: no-repeat;
+        background-size: 1600% 1600%;
+        background-position: calc(var(--col) * 100% / 15) 0%;
+        image-rendering: pixelated;
+        mix-blend-mode: screen;
+        animation:
+          flap 0.62s steps(1, end) infinite,
+          bob 3.2s ease-in-out infinite;
+      }
+
+      /* ------------------------------ Secciones --------------------------- */
+
+      .section {
+        position: relative;
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: clamp(56px, 8vw, 104px) clamp(18px, 4vw, 28px);
+        scroll-margin-top: 56px;
+      }
+
+      .section__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 16px;
+        padding-bottom: 16px;
+        margin-bottom: clamp(26px, 4vw, 40px);
+        border-bottom: 2px solid rgba(41, 173, 255, 0.22);
+      }
+
+      .section__num {
+        display: inline-block;
+        padding: 9px 11px;
+        font-family: var(--px);
+        font-size: 11px;
+        line-height: 1;
+        color: var(--void);
+        background: var(--blue);
+        box-shadow: 4px 4px 0 rgba(29, 43, 83, 0.9);
+      }
+
+      .section__title {
+        flex: 0 1 auto;
+        min-width: 0;
+        margin: 0;
+        font-family: var(--px);
+        font-size: clamp(15px, 2.8vw, 24px);
+        line-height: 1.35;
+        letter-spacing: 0.04em;
+        color: var(--white);
+      }
+
+      .section__sub {
+        margin: 3px 0 0 auto;
+        font-size: 19px;
+        letter-spacing: 0.06em;
+        color: var(--lav);
+      }
+
+      .lead {
+        max-width: 74ch;
+        margin: 0 0 clamp(28px, 4vw, 40px);
+        font-size: clamp(21px, 2.2vw, 24px);
+        line-height: 1.5;
+        color: #ded9f2;
+      }
+
+      .lead strong {
+        color: var(--white);
+        font-weight: 400;
+      }
+
+      .lead .hl {
+        color: var(--green);
+      }
+
+      /* ----------------------------- Protocolos --------------------------- */
+
+      .protocols {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+        gap: 16px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .protocol {
+        position: relative;
+        padding: 22px 20px 24px;
+        background: linear-gradient(180deg, rgba(29, 43, 83, 0.62), rgba(6, 8, 18, 0.92));
+        border: 2px solid rgba(41, 173, 255, 0.32);
+      }
+
+      .protocol::before {
+        content: "";
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        width: 10px;
+        height: 10px;
+        background: var(--blue);
+      }
+
+      .protocol::after {
+        content: "";
+        position: absolute;
+        right: -2px;
+        bottom: -2px;
+        width: 10px;
+        height: 10px;
+        background: var(--blue-deep);
+      }
+
+      .protocol__num {
+        display: block;
+        margin-bottom: 12px;
+        font-family: var(--px);
+        font-size: 7px;
+        letter-spacing: 0.14em;
+        color: var(--blue);
+      }
+
+      .protocol h3 {
+        margin: 0 0 10px;
+        min-height: 3.2em;
+        font-family: var(--px);
+        font-size: 10px;
+        line-height: 1.6;
+        letter-spacing: 0.06em;
+        text-wrap: balance;
+        color: var(--green);
+      }
+
+      .protocol p {
+        margin: 0;
+        font-size: 19px;
+        line-height: 1.45;
+        color: #c3c8e2;
+      }
+
+      .protocol p b {
+        color: var(--white);
+        font-weight: 400;
+      }
+
+      .quote {
+        margin: clamp(34px, 5vw, 52px) 0 0;
+        padding: 22px 0 0;
+        font-size: clamp(23px, 2.8vw, 30px);
+        line-height: 1.4;
+        color: var(--green);
+        border-top: 2px dashed rgba(0, 228, 54, 0.25);
+      }
+
+      .quote span {
+        display: block;
+        margin-top: 12px;
+        font-family: var(--px);
+        font-size: 8px;
+        letter-spacing: 0.1em;
+        color: var(--lav);
+      }
+
+      /* ------------------------------ Reglas ------------------------------ */
+
+      .cert {
+        position: relative;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: clamp(18px, 3vw, 32px);
+        align-items: center;
+        padding: clamp(22px, 3.4vw, 34px);
+        background:
+          linear-gradient(180deg, rgba(17, 22, 52, 0.95), rgba(6, 8, 18, 0.98));
+        border: 2px solid rgba(194, 195, 199, 0.35);
+        box-shadow:
+          inset 0 0 0 6px var(--ink),
+          inset 0 0 0 7px rgba(194, 195, 199, 0.18),
+          0 0 60px rgba(41, 173, 255, 0.07);
+      }
+
+      .cert__badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: clamp(104px, 15vw, 132px);
+        aspect-ratio: 1;
+        padding: 8px;
+        text-align: center;
+        color: var(--void);
+        background: var(--white);
+        border: 6px solid var(--void);
+        box-shadow: 0 0 0 4px var(--white);
+      }
+
+      .cert__code {
+        font-family: var(--px);
+        font-size: clamp(30px, 5vw, 42px);
+        line-height: 1;
+      }
+
+      .cert__ages {
+        font-family: var(--px);
+        font-size: 6px;
+        line-height: 1.6;
+        letter-spacing: 0.04em;
+      }
+
+      .cert__kicker {
+        margin: 0 0 10px;
+        font-family: var(--px);
+        font-size: 7px;
+        line-height: 1.8;
+        letter-spacing: 0.1em;
+        color: var(--orange);
+      }
+
+      .cert__verdict {
+        margin: 0;
+        font-size: clamp(22px, 2.8vw, 29px);
+        line-height: 1.35;
+        color: var(--white);
+        text-wrap: pretty;
+      }
+
+      .cert__note {
+        margin: 14px 0 0;
+        font-size: 18px;
+        line-height: 1.4;
+        color: var(--lav);
+      }
+
+      .cert__stamp {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        padding: 6px 10px;
+        font-family: var(--px);
+        font-size: 7px;
+        letter-spacing: 0.12em;
+        color: var(--green);
+        border: 2px solid var(--green);
+        transform: rotate(-9deg);
+        opacity: 0.85;
+      }
+
+      .descriptors {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 0;
+        margin: 22px 0 0;
+        border-top: 1px solid rgba(131, 118, 156, 0.35);
+        border-left: 1px solid rgba(131, 118, 156, 0.35);
+      }
+
+      .descriptors > div {
+        padding: 16px 18px;
+        border-right: 1px solid rgba(131, 118, 156, 0.35);
+        border-bottom: 1px solid rgba(131, 118, 156, 0.35);
+      }
+
+      .descriptors dt {
+        margin-bottom: 5px;
+        font-family: var(--px);
+        font-size: 7px;
+        letter-spacing: 0.12em;
+        color: var(--blue);
+      }
+
+      .descriptors dd {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.4;
+        color: #b9bed8;
+      }
+
+      /* --------------------------- Muro de honor -------------------------- */
+
+      .honor {
+        position: relative;
+        margin-top: clamp(34px, 5vw, 54px);
+        padding: clamp(24px, 3.6vw, 38px);
+        background:
+          radial-gradient(120% 100% at 100% 0%, rgba(126, 37, 83, 0.22), transparent 60%),
+          linear-gradient(180deg, rgba(10, 13, 28, 0.9), rgba(3, 4, 12, 0.98));
+        border: 2px solid rgba(255, 163, 0, 0.4);
+      }
+
+      .honor p.honor__kicker {
+        margin: 0 0 8px;
+        font-family: var(--px);
+        font-size: 8px;
+        letter-spacing: 0.14em;
+        color: var(--orange);
+      }
+
+      .honor h3 {
+        margin: 0 0 16px;
+        font-family: var(--px);
+        font-size: clamp(14px, 2.4vw, 21px);
+        line-height: 1.5;
+        color: var(--white);
+      }
+
+      .honor h3 a {
+        color: var(--yellow);
+        text-decoration: none;
+        border-bottom: 3px solid rgba(255, 236, 39, 0.45);
+      }
+
+      .honor h3 a:hover {
+        color: var(--void);
+        background: var(--yellow);
+        border-bottom-color: transparent;
+      }
+
+      .honor p {
+        max-width: 76ch;
+        margin: 0 0 14px;
+        font-size: 19px;
+        line-height: 1.5;
+        color: #c3c8e2;
+      }
+
+      .honor p strong {
+        color: var(--white);
+        font-weight: 400;
+      }
+
+      .honor__assets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 18px 0 22px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .honor__assets li {
+        padding: 5px 10px;
+        font-family: var(--px);
+        font-size: 6px;
+        letter-spacing: 0.08em;
+        color: var(--lav);
+        border: 1px solid rgba(131, 118, 156, 0.5);
+      }
+
+      .ghost-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 20px;
+        font-family: var(--px);
+        font-size: 8px;
+        line-height: 1.5;
+        letter-spacing: 0.08em;
+        color: var(--yellow);
+        text-decoration: none;
+        background: rgba(255, 236, 39, 0.06);
+        border: 2px solid var(--yellow);
+        box-shadow: 5px 5px 0 rgba(255, 163, 0, 0.35);
+        transition:
+          background 120ms steps(2, end),
+          transform 90ms steps(2, end),
+          box-shadow 90ms steps(2, end);
+      }
+
+      .ghost-btn:hover {
+        color: var(--void);
+        background: var(--yellow);
+        transform: translate(-2px, -2px);
+        box-shadow: 8px 8px 0 rgba(255, 163, 0, 0.45);
+      }
+
+      .ghost-btn:active {
+        transform: translate(3px, 3px);
+        box-shadow: 1px 1px 0 rgba(255, 163, 0, 0.45);
+      }
+
+      /* ------------------------------ Manual ------------------------------ */
+
+      .manual {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: clamp(22px, 4vw, 42px);
+      }
+
+      .manual h3 {
+        margin: 0 0 16px;
+        font-family: var(--px);
+        font-size: 9px;
+        letter-spacing: 0.1em;
+        color: var(--blue);
+      }
+
+      .keys {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border-top: 1px solid rgba(131, 118, 156, 0.3);
+      }
+
+      .keys li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 9px 0;
+        font-size: 18px;
+        border-bottom: 1px solid rgba(131, 118, 156, 0.3);
+      }
+
+      .keys span {
+        font-family: var(--px);
+        font-size: 7px;
+        letter-spacing: 0.1em;
+        color: var(--lav);
+      }
+
+      .keys b {
+        font-weight: 400;
+        color: var(--white);
+      }
+
+      .specs {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 18px;
+        line-height: 1.5;
+      }
+
+      .specs li {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(131, 118, 156, 0.3);
+      }
+
+      .specs span {
+        font-family: var(--px);
+        font-size: 7px;
+        letter-spacing: 0.1em;
+        color: var(--lav);
+      }
+
+      .specs b {
+        font-weight: 400;
+        color: var(--green);
+        text-align: right;
+      }
+
+      /* ------------------------------- Footer ----------------------------- */
+
+      .footer {
+        position: relative;
+        z-index: 2;
+        padding: clamp(34px, 5vw, 54px) clamp(18px, 4vw, 28px) 40px;
+        text-align: center;
+        border-top: 1px solid rgba(41, 173, 255, 0.2);
+        background: linear-gradient(transparent, rgba(29, 43, 83, 0.22));
+      }
+
+      .footer p {
+        margin: 0 0 10px;
+        font-size: 17px;
+        color: var(--lav);
+      }
+
+      .footer p:first-child {
+        font-family: var(--px);
+        font-size: 8px;
+        letter-spacing: 0.14em;
+        color: var(--white);
+      }
+
+      .footer a {
+        color: var(--grey);
+      }
+
+      .footer a:hover {
+        color: var(--green);
+      }
+
+      /* --------------------------- Entrada suave -------------------------- */
+
+      /* El contenido nunca depende de JavaScript para ser visible: si las
+         animaciones no están soportadas, todo se muestra tal cual. */
+
+      .js .intro {
+        opacity: 0;
+        animation: rise 640ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+        animation-delay: var(--d, 0ms);
+      }
+
+      @supports (animation-timeline: view()) {
+        .reveal {
+          animation-name: rise;
+          animation-timing-function: linear;
+          animation-fill-mode: both;
+          animation-timeline: view();
+          animation-range: entry 2% entry 42%;
+        }
+      }
+
+      /* ---------------------------- Animaciones --------------------------- */
+
       @keyframes blink {
-        to {
+        50% {
           opacity: 0.15;
         }
       }
 
-      @media (prefers-reduced-motion: reduce) {
-        #loader span {
-          animation: none;
+      @keyframes glow {
+        0%,
+        100% {
+          filter: drop-shadow(0 0 12px rgba(0, 228, 54, 0.4));
+        }
+        50% {
+          filter: drop-shadow(0 0 32px rgba(0, 228, 54, 0.8));
         }
       }
 
-      noscript {
-        position: fixed;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-        color: #fff1e8;
-        font-family: "Courier New", monospace;
-        text-align: center;
-        z-index: 20;
+      @keyframes shine {
+        0%,
+        55% {
+          transform: translateX(-220%) skewX(-18deg);
+        }
+        100% {
+          transform: translateX(320%) skewX(-18deg);
+        }
+      }
+
+      @keyframes nudge-l {
+        50% {
+          transform: translateX(-4px);
+        }
+      }
+
+      @keyframes nudge-r {
+        50% {
+          transform: translateX(4px);
+        }
+      }
+
+      @keyframes sweep-down {
+        0% {
+          top: -20%;
+        }
+        100% {
+          top: 120%;
+        }
+      }
+
+      @keyframes drift {
+        to {
+          transform: translateX(-50%);
+        }
+      }
+
+      @keyframes flap {
+        0%,
+        49% {
+          background-position-y: 0%;
+        }
+        50%,
+        100% {
+          background-position-y: 6.6667%;
+        }
+      }
+
+      @keyframes bob {
+        50% {
+          translate: 0 -5px;
+        }
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* ------------------------------- Responsive ------------------------- */
+
+      /* Cuatro tarjetas: 4 columnas en escritorio, 2x2 en tablet y 1 en móvil.
+         Evita el 3+1 huérfano que deja `auto-fit`. */
+      @media (max-width: 1000px) {
+        .protocols {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 600px) {
+        .protocols {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .hud .hud__cell--mid {
+          display: none;
+        }
+
+        .section__sub {
+          margin-left: 0;
+          flex-basis: 100%;
+        }
+
+        .cert {
+          grid-template-columns: 1fr;
+          text-align: left;
+        }
+
+        .cert__stamp {
+          top: auto;
+          bottom: 10px;
+          right: 10px;
+        }
+
+        .stats li {
+          padding: 4px 10px;
+          font-size: 7px;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .logo {
+          font-size: 20px;
+        }
+
+        .hud {
+          font-size: 7px;
+        }
+
+        .play {
+          width: 100%;
+          font-size: 26px;
+          padding-inline: 12px;
+        }
+      }
+
+      /* ------------------------- Menos movimiento ------------------------- */
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001ms !important;
+        }
+
+        .js .intro {
+          opacity: 1;
+          transform: none;
+        }
+
+        .reveal {
+          animation: none;
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* Salto de accesibilidad */
+      .skip {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        z-index: 100;
+        padding: 12px 16px;
+        font-family: var(--px);
+        font-size: 9px;
+        color: var(--void);
+        background: var(--green);
+      }
+
+      .skip:focus {
+        left: 8px;
+        top: 8px;
       }
     </style>
   </head>
 
   <body>
-    <div id="game" aria-label="Space Eaters, juego de naves"></div>
+    <a class="skip" href="#alma">Saltar al contenido</a>
 
-    <div id="loader" role="status" aria-live="polite">
-      <span>CARGANDO…</span>
-    </div>
+    <canvas id="stars" aria-hidden="true"></canvas>
+    <div class="crt" aria-hidden="true"></div>
 
-    <noscript>Este juego necesita JavaScript activado para poder ejecutarse.</noscript>
+    <header class="hud">
+      <p><span class="led" aria-hidden="true"></span> DEFENSA ORBITAL</p>
+      <p class="hud__cell--mid">SECTOR 08 · AÑO 2088</p>
+      <p class="hud__cell--end">
+        VIDAS
+        <span class="hearts" aria-hidden="true"><i></i><i></i><i></i></span>
+      </p>
+    </header>
 
-    <!-- 1. Phaser 3 desde CDN (queda como global `Phaser`). -->
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+    <main id="inicio">
+      <!-- ================= HERO ================= -->
+      <section class="hero">
+        <p class="eyebrow intro" style="--d: 40ms">[ PHASER 3 · TYPESCRIPT · 8 BITS ]</p>
 
-    <!-- 2. Lógica del juego compilada desde TypeScript (game.ts -> game.js). -->
-    <script src="game.js"></script>
+        <h1 class="logo intro" style="--d: 110ms">SPACE <em>EATERS</em></h1>
+
+        <p class="tagline intro" style="--d: 180ms">LA ÚLTIMA LÍNEA DE DEFENSA</p>
+
+        <div class="transmission intro" style="--d: 250ms">
+          <p class="transmission__meta">
+            <span class="led led--red" aria-hidden="true"></span>
+            TRANSMISIÓN ENTRANTE · PRIORIDAD ALFA
+          </p>
+          <p class="logline">
+            Año 2088. Una plaga de extraterrestres devoradores de silicio ha triturado la red de
+            defensa automatizada de la Tierra y avanza hacia la última ciudad. La humanidad ya no
+            tiene ejércitos ni máquinas que oponer: <strong>solo tiene pilotos</strong>. Tú eres la
+            respuesta de choque, <strong>la última línea de defensa</strong>, y cada disparo fallado
+            es un kilómetro de atmósfera que se pierde.
+          </p>
+          <p class="transmission__sign">— ALTO MANDO DE LA FLOTA ESCUDO</p>
+        </div>
+
+        <a class="play intro" style="--d: 330ms" href="./juego.html">
+          <span class="play__tri" aria-hidden="true"></span>
+          <span class="play__label">JUGAR</span>
+          <span class="play__tri play__tri--r" aria-hidden="true"></span>
+        </a>
+
+        <p class="insert intro" style="--d: 400ms">
+          INSERTA UNA MONEDA · O PULSA <kbd>ENTER</kbd>
+        </p>
+
+        <ul class="stats intro" style="--d: 470ms">
+          <li><b>3</b> VIDAS</li>
+          <li><b>8</b> ENEMIGOS</li>
+          <li><b>12</b> NIVELES</li>
+          <li><b>1</b> PILOTO</li>
+        </ul>
+      </section>
+
+      <!-- ================= OLEADA DECORATIVA ================= -->
+      <div class="wave" aria-hidden="true">
+        <div class="wave__track">
+          <span class="sprite" style="--col: 3"></span>
+          <span class="sprite" style="--col: 4"></span>
+          <span class="sprite" style="--col: 5"></span>
+          <span class="sprite" style="--col: 6"></span>
+          <span class="sprite" style="--col: 7"></span>
+          <span class="sprite" style="--col: 8"></span>
+          <span class="sprite" style="--col: 9"></span>
+          <span class="sprite" style="--col: 10"></span>
+          <span class="sprite" style="--col: 6"></span>
+          <span class="sprite" style="--col: 3"></span>
+          <span class="sprite" style="--col: 9"></span>
+          <span class="sprite" style="--col: 5"></span>
+          <!-- Segunda mitad idéntica: hace el bucle continuo. -->
+          <span class="sprite" style="--col: 3"></span>
+          <span class="sprite" style="--col: 4"></span>
+          <span class="sprite" style="--col: 5"></span>
+          <span class="sprite" style="--col: 6"></span>
+          <span class="sprite" style="--col: 7"></span>
+          <span class="sprite" style="--col: 8"></span>
+          <span class="sprite" style="--col: 9"></span>
+          <span class="sprite" style="--col: 10"></span>
+          <span class="sprite" style="--col: 6"></span>
+          <span class="sprite" style="--col: 3"></span>
+          <span class="sprite" style="--col: 9"></span>
+          <span class="sprite" style="--col: 5"></span>
+        </div>
+      </div>
+
+      <!-- ================= 01 · EL ALMA ================= -->
+      <section class="section" id="alma">
+        <header class="section__head reveal">
+          <span class="section__num">01</span>
+          <h2 class="section__title">EL ALMA DEL JUEGO</h2>
+          <p class="section__sub">Narrativa y propósito</p>
+        </header>
+
+        <p class="lead reveal">
+          <em>Space Eaters</em> no es un juego sobre naves. Es un juego sobre
+          <span class="hl">lo predecible</span>. La ficción y la mecánica cuentan la misma historia:
+          los Eaters devoran todo lo que puede calcularse de antemano, y por eso la humanidad
+          —ruidosa, torpe, analógica— es la única defensa que les queda por digerir.
+        </p>
+
+        <ul class="protocols">
+          <li class="protocol reveal" style="--d: 60ms">
+            <span class="protocol__num">PROTOCOLO 01</span>
+            <h3>ESQUIVAR ES DECIDIR</h3>
+            <p>
+              Los enemigos interpolan tu posición: si te quedas quieto, te alcanzan. Mover la nave
+              obliga a <b>evaluar un estado y elegir la siguiente acción</b>. Es la unidad mínima del
+              pensamiento lógico, repetida sesenta veces por segundo.
+            </p>
+          </li>
+
+          <li class="protocol reveal" style="--d: 130ms">
+            <span class="protocol__num">PROTOCOLO 02</span>
+            <h3>DISPARAR ES ADMINISTRAR</h3>
+            <p>
+              Un disparo cada 200 ms. La atención no es infinita: cada bala es un recurso temporal.
+              Aprender eso es aprender a <b>gestionar el tiempo de cómputo</b>, el mismo problema que
+              resuelve un presupuesto de fotograma.
+            </p>
+          </li>
+
+          <li class="protocol reveal" style="--d: 200ms">
+            <span class="protocol__num">PROTOCOLO 03</span>
+            <h3>ANTICIPAR ES ABSTRAER</h3>
+            <p>
+              Los Eaters no siguen una ruta fija: <b>te rastrean</b>. Leer una función en movimiento y
+              romperla es abstracción pura: ver el patrón detrás del píxel antes de que ocurra.
+            </p>
+          </li>
+
+          <li class="protocol reveal" style="--d: 270ms">
+            <span class="protocol__num">PROTOCOLO 04</span>
+            <h3>FALLAR ES DEPURAR</h3>
+            <p>
+              Tres vidas y 1,6 segundos de invulnerabilidad: el error no cierra el programa, lo
+              reinicia con información nueva. Es el <b>ciclo de depuración convertido en reflejo</b>.
+            </p>
+          </li>
+        </ul>
+
+        <blockquote class="quote reveal">
+          «No sobrevive el que dispara más rápido, sino el que deja de ser predecible.»
+          <span>— Manual de vuelo, pág. 8</span>
+        </blockquote>
+      </section>
+
+      <!-- ================= 02 · LAS REGLAS ================= -->
+      <section class="section" id="reglas">
+        <header class="section__head reveal">
+          <span class="section__num">02</span>
+          <h2 class="section__title">LAS REGLAS DEL MUNDO REAL</h2>
+          <p class="section__sub">Legal y ético</p>
+        </header>
+
+        <article class="cert reveal">
+          <div class="cert__badge" aria-hidden="true">
+            <span class="cert__code">TP</span>
+            <span class="cert__ages">TODO PÚBLICO<br />ALL AGES</span>
+          </div>
+
+          <div>
+            <p class="cert__kicker">CLASIFICACIÓN CREATIVA · RESOLUCIÓN N.º 8-BIT/2026</p>
+            <p class="cert__verdict">«Para todo público, a no ser que seas un extraterrestre, en tu caso no.»</p>
+            <p class="cert__note">
+              Advertencia emitida por el Consejo Intergaláctico de Clasificación. Válida en los ocho
+              sectores conocidos y en cualquier nave que aún conserve un monitor de fósforo.
+            </p>
+          </div>
+
+          <span class="cert__stamp">APROBADO</span>
+        </article>
+
+        <dl class="descriptors reveal">
+          <div>
+            <dt>VIOLENCIA</dt>
+            <dd>
+              Pixelada y no realista. Los enemigos se desintegran en confeti de 8×8. Ningún ser
+              sintiente resulta herido; ningún píxel tampoco.
+            </dd>
+          </div>
+          <div>
+            <dt>MIEDO</dt>
+            <dd>
+              Leve. Hay oscuridad espacial, pero las estrellas miden un píxel y no dan miedo. El
+              vacío, en cambio, sí.
+            </dd>
+          </div>
+          <div>
+            <dt>LENGUAJE</dt>
+            <dd>Inexistente. Los Eaters no hablan: se acercan. Es peor.</dd>
+          </div>
+          <div>
+            <dt>COMPRAS</dt>
+            <dd>
+              Ninguna. Sin monedas, sin cofres, sin pases de batalla. Solo tu orgullo, que no está
+              en venta.
+            </dd>
+          </div>
+          <div>
+            <dt>JUGADORES</dt>
+            <dd>Uno. La soledad también es parte del entrenamiento.</dd>
+          </div>
+          <div>
+            <dt>EXENCIÓN</dt>
+            <dd>
+              Los extraterrestres quedan excluidos de esta clasificación. Se les recomienda no
+              jugar: el objetivo del juego es, literalmente, eliminarlos.
+            </dd>
+          </div>
+        </dl>
+
+        <article class="honor reveal" id="creditos">
+          <p class="honor__kicker">MURO DE HONOR · CRÉDITOS DE RECURSOS GRÁFICOS</p>
+          <h3>
+            Arte por
+            <a href="https://cluly.itch.io/space-eaters" target="_blank" rel="noopener noreferrer"
+              >Cluly</a
+            >
+          </h3>
+
+          <p>
+            Este proyecto reconoce públicamente la autoría de los recursos visuales que dan forma a
+            <strong>Space Eaters</strong>. La totalidad de los assets gráficos —las naves, los ocho
+            tipos de enemigos, los proyectiles, las explosiones, los asteroides, los iconos del HUD y
+            el logotipo— fue creada por <strong>Cluly</strong> y publicada como el paquete «Space
+            Eaters» en itch.io.
+          </p>
+          <p>
+            El código del juego (Phaser 3 + TypeScript), el diseño de mecánicas, los efectos de audio
+            sintetizados con WebAudio y esta página son de autoría propia. El arte no: el arte es de
+            Cluly, y se usa aquí con fines académicos y de homenaje.
+          </p>
+          <p>
+            Gracias por publicar una hoja de sprites de 128×128 capaz de sostener un juego entero. Es
+            un recordatorio de que no hacen falta millones de polígonos para construir un mundo.
+          </p>
+
+          <ul class="honor__assets">
+            <li>NAVE PILOTO</li>
+            <li>8 ENEMIGOS</li>
+            <li>EXPLOSIONES</li>
+            <li>ASTEROIDES</li>
+            <li>HUD</li>
+            <li>LOGOTIPO</li>
+          </ul>
+
+          <a
+            class="ghost-btn"
+            href="https://cluly.itch.io/space-eaters"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            VER EL PAQUETE ORIGINAL <span aria-hidden="true">↗</span>
+          </a>
+        </article>
+      </section>
+
+      <!-- ================= 03 · MANUAL ================= -->
+      <section class="section" id="manual">
+        <header class="section__head reveal">
+          <span class="section__num">03</span>
+          <h2 class="section__title">MANUAL DE VUELO</h2>
+          <p class="section__sub">Controles y ficha técnica</p>
+        </header>
+
+        <div class="manual reveal">
+          <div>
+            <h3>CONTROLES</h3>
+            <ul class="keys">
+              <li><span>MOVER</span> <b>← ↑ → ↓ / W A S D</b></li>
+              <li><span>DISPARAR</span> <b>CLIC IZQ. / ESPACIO</b></li>
+              <li><span>PAUSA</span> <b>P / ESC</b></li>
+              <li><span>SALIR</span> <b>Q EN PAUSA</b></li>
+              <li><span>SILENCIO</span> <b>M</b></li>
+              <li><span>REINTENTAR</span> <b>ENTER / ESPACIO</b></li>
+              <li><span>TÁCTIL</span> <b>ARRASTRA Y TOCA</b></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3>FICHA TÉCNICA</h3>
+            <ul class="specs">
+              <li><span>MOTOR</span> <b>PHASER 3.90</b></li>
+              <li><span>LENGUAJE</span> <b>TYPESCRIPT STRICT</b></li>
+              <li><span>RESOLUCIÓN</span> <b>320×180 · ZOOM ENTERO</b></li>
+              <li><span>ARTE</span> <b>128×128 · PICO-8</b></li>
+              <li><span>AUDIO</span> <b>WEBAUDIO SINTETIZADO</b></li>
+              <li><span>RÉCORD</span> <b>LOCALSTORAGE</b></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>SPACE EATERS · 2026</p>
+      <p>
+        Taller «El Alma, el Escaparate y la Fábrica Automática» · Arte por
+        <a href="https://cluly.itch.io/space-eaters" target="_blank" rel="noopener noreferrer"
+          >Cluly</a
+        >
+      </p>
+      <p>
+        <a href="https://github.com/2026B-Sof-Jueg-Gr3/chiluiza-anthony-jueg-gr3" target="_blank" rel="noopener noreferrer"
+          >Código fuente en GitHub</a
+        >
+        ·
+        <a href="./juego.html">Jugar</a>
+      </p>
+    </footer>
 
     <script>
-      // Retira la pantalla de carga en cuanto Phaser crea el lienzo.
-      (function () {
-        var loader = document.getElementById('loader');
-        var label = loader ? loader.querySelector('span') : null;
-        var finished = false;
+      /* =====================================================================
+         1. Campo de estrellas (canvas, parallax y alguna estrella fugaz)
+         ================================================================== */
+      (function starfield() {
+        var canvas = document.getElementById("stars");
+        if (!canvas) return;
 
-        function stopLoader() {
-          if (finished || !loader) return;
-          finished = true;
-          loader.classList.add('is-hidden');
-          window.setTimeout(function () {
-            if (loader.parentNode) loader.parentNode.removeChild(loader);
-          }, 400);
+        var ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var colors = ["#fff1e8", "#c2c3c7", "#29adff", "#83769c"];
+        var stars = [];
+        var streaks = [];
+        var width = 0;
+        var height = 0;
+        var dpr = 1;
+        var last = 0;
+        var raf = 0;
+
+        function resize() {
+          dpr = Math.min(2, window.devicePixelRatio || 1);
+          width = canvas.clientWidth;
+          height = canvas.clientHeight;
+
+          canvas.width = Math.max(1, Math.floor(width * dpr));
+          canvas.height = Math.max(1, Math.floor(height * dpr));
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+          var count = Math.round(Math.min(220, Math.max(80, (width * height) / 11000)));
+
+          stars = [];
+          for (var i = 0; i < count; i++) {
+            stars.push({
+              x: Math.random() * width,
+              y: Math.random() * height,
+              z: 0.25 + Math.random() * 0.75,
+              color: colors[(Math.random() * colors.length) | 0]
+            });
+          }
         }
 
-        function showError(message) {
-          if (finished || !label) return;
-          finished = true;
-          label.textContent = message;
-          label.style.animation = 'none';
+        function draw() {
+          ctx.clearRect(0, 0, width, height);
+
+          for (var i = 0; i < stars.length; i++) {
+            var star = stars[i];
+            var size = star.z > 0.82 ? 2 : 1;
+
+            ctx.globalAlpha = 0.25 + star.z * 0.6;
+            ctx.fillStyle = star.color;
+            ctx.fillRect(star.x | 0, star.y | 0, size, size);
+          }
+
+          for (var s = 0; s < streaks.length; s++) {
+            var streak = streaks[s];
+            var tailX = streak.x + streak.len * 0.35;
+            var tailY = streak.y - streak.len;
+            var fade = ctx.createLinearGradient(tailX, tailY, streak.x, streak.y);
+
+            fade.addColorStop(0, "rgba(255, 241, 232, 0)");
+            fade.addColorStop(1, "rgba(255, 241, 232, 0.95)");
+
+            ctx.globalAlpha = Math.max(0, streak.life);
+            ctx.strokeStyle = fade;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(tailX, tailY);
+            ctx.lineTo(streak.x, streak.y);
+            ctx.stroke();
+          }
+
+          ctx.globalAlpha = 1;
         }
 
-        var timer = window.setInterval(function () {
-          if (document.querySelector('#game canvas')) {
-            window.clearInterval(timer);
-            stopLoader();
-          }
-        }, 60);
+        function tick(now) {
+          var delta = last ? Math.min(64, now - last) : 16;
+          last = now;
 
-        // Red de seguridad: si Phaser no llega a arrancar, avisamos en pantalla.
-        window.setTimeout(function () {
-          window.clearInterval(timer);
-          if (document.querySelector('#game canvas')) {
-            stopLoader();
-          } else {
-            showError('ERROR AL CARGAR EL JUEGO');
+          for (var i = 0; i < stars.length; i++) {
+            var star = stars[i];
+            star.y += (6 + star.z * 26) * (delta / 1000);
+
+            if (star.y > height + 2) {
+              star.y = -2;
+              star.x = Math.random() * width;
+            }
           }
-        }, 8000);
+
+          /* Estrella fugaz: aparece de vez en cuando, nunca en exceso. */
+          if (Math.random() < 0.0035 && streaks.length < 2) {
+            streaks.push({
+              x: Math.random() * width,
+              y: Math.random() * height * 0.5,
+              len: 40 + Math.random() * 70,
+              life: 1
+            });
+          }
+
+          for (var s = streaks.length - 1; s >= 0; s--) {
+            var streak = streaks[s];
+            streak.y += 320 * (delta / 1000);
+            streak.x -= 90 * (delta / 1000);
+            streak.life -= 1.6 * (delta / 1000);
+
+            if (streak.life <= 0 || streak.y > height) {
+              streaks.splice(s, 1);
+            }
+          }
+
+          draw();
+          raf = window.requestAnimationFrame(tick);
+        }
+
+        resize();
+        draw();
+
+        if (!reduce) {
+          raf = window.requestAnimationFrame(tick);
+        }
+
+        window.addEventListener("resize", function () {
+          resize();
+          draw();
+        });
+
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) {
+            window.cancelAnimationFrame(raf);
+            raf = 0;
+          } else if (!reduce && !raf) {
+            last = 0;
+            raf = window.requestAnimationFrame(tick);
+          }
+        });
+      })();
+
+      /* =====================================================================
+         2. Atajo de teclado: ENTER lanza la partida
+         ================================================================== */
+      (function enterToPlay() {
+        document.addEventListener("keydown", function (event) {
+          if (event.key !== "Enter" || event.metaKey || event.ctrlKey || event.altKey) return;
+
+          var tag = event.target && event.target.tagName;
+          if (tag === "A" || tag === "BUTTON" || tag === "INPUT" || tag === "TEXTAREA") return;
+
+          window.location.href = "./juego.html";
+        });
       })();
     </script>
   </body>

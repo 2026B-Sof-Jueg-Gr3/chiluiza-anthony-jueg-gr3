@@ -3,7 +3,7 @@
 Shooter vertical retro (8 bits) construido con **Phaser 3** y **TypeScript estricto**,
 usando exclusivamente los sprites del paquete de assets incluido.
 
-Trabajo individual del taller *«Setup, Desarrollo y Despliegue con Phaser 3»*.
+Trabajo individual del taller *«El Alma, el Escaparate y la Fábrica Automática»*.
 
 ---
 
@@ -11,9 +11,11 @@ Trabajo individual del taller *«Setup, Desarrollo y Despliegue con Phaser 3»*.
 
 ```
 .
-├── index.html                          # Página del juego (pantalla completa + CDN de Phaser)
+├── index.html                          # Escaparate / landing page del juego (8 bits)
+├── juego.html                          # Página del juego (pantalla completa + CDN de Phaser)
 ├── game.ts                             # Código fuente: toda la lógica del juego
-├── game.js                             # Salida compilada de game.ts (la carga index.html)
+├── game.js                             # Salida compilada de game.ts (la carga juego.html)
+├── MISIONES.md                         # Misiones 1 y 2 del taller (narrativa y legal)
 ├── tsconfig.json                       # Configuración de TypeScript (modo estricto)
 ├── package.json                        # Scripts de compilación y dependencias de desarrollo
 └── assets/
@@ -21,6 +23,10 @@ Trabajo individual del taller *«Setup, Desarrollo y Despliegue con Phaser 3»*.
     ├── pico8_invaders_sprites.png        # Atlas alternativo (mismo formato)
     └── pico8_invaders_SPLASH.png         # Captura promocional del paquete
 ```
+
+La raíz del sitio es el **escaparate** (`index.html`): presenta el logline, la resonancia
+ludonarrativa, la clasificación creativa y el muro de honor, y lleva al juego con el botón
+`JUGAR` (`./juego.html`).
 
 `node_modules/` solo contiene las herramientas de compilación (`typescript` y los
 tipos de `phaser`). **No se publica**: en el navegador Phaser llega desde el CDN.
@@ -38,7 +44,7 @@ El juego carga imágenes y scripts, así que necesita servirse por HTTP
 
 # Opción B — servidor de Python
 python -m http.server 8080
-# http://localhost:8080
+# http://localhost:8080  (escaparate)  ·  http://localhost:8080/juego.html  (juego)
 
 # Opción C — script incluido en package.json
 npm run serve
@@ -58,7 +64,7 @@ npm run watch    # recompila al guardar
 
 `tsconfig.json` activa `strict`, `noImplicitOverride`, `noUnusedLocals`,
 `noUnusedParameters` y `noImplicitReturns`. El archivo no tiene `import`/`export`,
-por lo que `tsc` emite un **script clásico**: `index.html` lo carga con una
+por lo que `tsc` emite un **script clásico**: `juego.html` lo carga con una
 etiqueta `<script>` normal, sin bundler.
 
 ---
@@ -72,6 +78,7 @@ etiqueta `<script>` normal, sin bundler.
 | Pausa             | `P` o `Esc`                      |
 | Silenciar audio   | `M`                              |
 | Jugar / reintentar| `Enter` o `Espacio` en los menús |
+| Volver al escaparate | Botón `VOLVER` del menú, `Esc` en el menú o `Q` durante la pausa |
 
 En pantallas táctiles: arrastrar el dedo mueve la nave y tocando se dispara.
 

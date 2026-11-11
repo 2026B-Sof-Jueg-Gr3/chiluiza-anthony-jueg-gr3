@@ -72,6 +72,16 @@ var SpaceEaters;
     };
     /** Convierte un entero 0xRRGGBB al string CSS que espera Phaser.Text. */
     const css = (value) => `#${value.toString(16).padStart(6, '0')}`;
+    /**
+     * Regresa al escaparate (index.html) que envuelve al juego.
+     *
+     * El canvas ocupa la pantalla completa, así que sin una salida explícita el
+     * jugador queda atrapado: el historial del navegador no es una interfaz.
+     * Se llama desde el menú (botón VOLVER) y desde la pausa (tecla Q).
+     */
+    const exitToShowcase = () => {
+        window.location.assign('./index.html');
+    };
     /* ------------------------------ Jugador ---------------------------------- */
     const PLAYER_SPEED = 135;
     const PLAYER_SCALE = 2;
@@ -765,6 +775,11 @@ var SpaceEaters;
             this.bestLabel.setDepth(11);
             this.footer = this.createText(0, 0, 'PHASER 3 + TYPESCRIPT', 5, PALETTE.darkGrey);
             this.footer.setDepth(11);
+            // Salida al escaparate, siempre visible en la esquina superior izquierda.
+            this.exitButton = this.add.rectangle(0, 0, 56, 20, 0x000000).setDepth(10);
+            this.exitButton.setStrokeStyle(1, PALETTE.darkGrey);
+            this.exitLabel = this.createText(0, 0, 'VOLVER', 6, PALETTE.lavender);
+            this.exitLabel.setDepth(11);
             this.configureButton();
             this.animateDecorations();
             this.refreshBestScore();
@@ -794,6 +809,8 @@ var SpaceEaters;
             this.instructions.setPosition(width / 2, instructionsY);
             this.bestLabel.setPosition(width / 2, bestY);
             this.footer.setPosition(width / 2, height - 7);
+            this.exitButton.setPosition(32, 15);
+            this.exitLabel.setPosition(32, 15);
             // Enemigos decorativos pegados a los bordes, lejos del botón.
             for (let i = 0; i < this.decorations.length; i++) {
                 const enemy = this.decorations[i];
@@ -821,10 +838,21 @@ var SpaceEaters;
                 this.button.setScale(1);
                 this.startGame();
             });
+            this.exitButton.setInteractive({ useHandCursor: true });
+            this.exitButton.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => {
+                this.exitButton.setFillStyle(PALETTE.darkBlue);
+                this.exitLabel.setColor(css(PALETTE.white));
+            });
+            this.exitButton.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => {
+                this.exitButton.setFillStyle(0x000000);
+                this.exitLabel.setColor(css(PALETTE.lavender));
+            });
+            this.exitButton.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => exitToShowcase());
             const keyboard = this.input.keyboard;
             if (keyboard) {
                 keyboard.on('keydown-ENTER', () => this.startGame());
                 keyboard.on('keydown-SPACE', () => this.startGame());
+                keyboard.on('keydown-ESC', () => exitToShowcase());
             }
         }
         animateDecorations() {
@@ -878,6 +906,7 @@ var SpaceEaters;
             this.gameOver = false;
             this.spawnTimer = null;
             this.pauseOverlay = null;
+            this.pauseHint = null;
         }
         /* ------------------------------ Construcción --------------------------- */
         build() {
@@ -890,6 +919,7 @@ var SpaceEaters;
             this.paused = false;
             this.gameOver = false;
             this.pauseOverlay = null;
+            this.pauseHint = null;
             this.sfx = new Sfx();
             this.sfx.unlock();
             this.cameras.main.setBackgroundColor('#000000');
@@ -931,7 +961,10 @@ var SpaceEaters;
                 this.hud.syncResolution(this);
             }
             if (this.pauseOverlay) {
-                this.pauseOverlay.setPosition(this.worldWidth / 2, this.worldHeight / 2);
+                this.pauseOverlay.setPosition(this.worldWidth / 2, this.worldHeight / 2 - 8);
+            }
+            if (this.pauseHint) {
+                this.pauseHint.setPosition(this.worldWidth / 2, this.worldHeight / 2 + 10);
             }
             this.refreshTextResolution();
         }
@@ -955,6 +988,13 @@ var SpaceEaters;
             });
             keyboard.on('keydown-P', () => this.togglePause());
             keyboard.on('keydown-ESC', () => this.togglePause());
+            // Q solo sale si la partida está en pausa: así no se abandona la partida
+            // por pulsar una tecla de movimiento sin querer.
+            keyboard.on('keydown-Q', () => {
+                if (this.paused) {
+                    exitToShowcase();
+                }
+            });
             keyboard.on('keydown-M', () => {
                 const muted = this.sfx.toggleMute();
                 this.flashMessage(muted ? 'SILENCIO' : 'SONIDO ON');
@@ -1160,8 +1200,11 @@ var SpaceEaters;
             if (this.paused) {
                 this.physics.pause();
                 this.time.paused = true;
-                this.pauseOverlay = this.createText(this.worldWidth / 2, this.worldHeight / 2, 'PAUSA', 16, PALETTE.yellow);
+                this.pauseOverlay = this.createText(this.worldWidth / 2, this.worldHeight / 2 - 8, 'PAUSA', 16, PALETTE.yellow);
                 this.pauseOverlay.setDepth(200);
+                // Sin esto, el juego a pantalla completa no tendría salida.
+                this.pauseHint = this.createText(this.worldWidth / 2, this.worldHeight / 2 + 10, 'P CONTINUAR    Q SALIR', 6, PALETTE.lightGrey);
+                this.pauseHint.setDepth(200);
                 this.refreshTextResolution();
             }
             else {
@@ -1169,6 +1212,8 @@ var SpaceEaters;
                 this.time.paused = false;
                 this.pauseOverlay?.destroy();
                 this.pauseOverlay = null;
+                this.pauseHint?.destroy();
+                this.pauseHint = null;
             }
         }
         /* ------------------------------ Puntuación ----------------------------- */

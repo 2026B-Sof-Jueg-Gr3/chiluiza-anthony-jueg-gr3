@@ -79,6 +79,17 @@ namespace SpaceEaters {
   /** Convierte un entero 0xRRGGBB al string CSS que espera Phaser.Text. */
   const css = (value: number): string => `#${value.toString(16).padStart(6, '0')}`;
 
+  /**
+   * Regresa al escaparate (index.html) que envuelve al juego.
+   *
+   * El canvas ocupa la pantalla completa, así que sin una salida explícita el
+   * jugador queda atrapado: el historial del navegador no es una interfaz.
+   * Se llama desde el menú (botón VOLVER) y desde la pausa (tecla Q).
+   */
+  const exitToShowcase = (): void => {
+    window.location.assign('./index.html');
+  };
+
   /* ------------------------------ Jugador ---------------------------------- */
 
   const PLAYER_SPEED = 135;
@@ -944,6 +955,8 @@ namespace SpaceEaters {
     private instructions!: Phaser.GameObjects.Text;
     private bestLabel!: Phaser.GameObjects.Text;
     private footer!: Phaser.GameObjects.Text;
+    private exitButton!: Phaser.GameObjects.Rectangle;
+    private exitLabel!: Phaser.GameObjects.Text;
     private decorations: Phaser.GameObjects.Sprite[] = [];
     private starting = false;
 
@@ -983,6 +996,12 @@ namespace SpaceEaters {
 
       this.footer = this.createText(0, 0, 'PHASER 3 + TYPESCRIPT', 5, PALETTE.darkGrey);
       this.footer.setDepth(11);
+
+      // Salida al escaparate, siempre visible en la esquina superior izquierda.
+      this.exitButton = this.add.rectangle(0, 0, 56, 20, 0x000000).setDepth(10);
+      this.exitButton.setStrokeStyle(1, PALETTE.darkGrey);
+      this.exitLabel = this.createText(0, 0, 'VOLVER', 6, PALETTE.lavender);
+      this.exitLabel.setDepth(11);
 
       this.configureButton();
       this.animateDecorations();
@@ -1027,6 +1046,9 @@ namespace SpaceEaters {
       this.bestLabel.setPosition(width / 2, bestY);
       this.footer.setPosition(width / 2, height - 7);
 
+      this.exitButton.setPosition(32, 15);
+      this.exitLabel.setPosition(32, 15);
+
       // Enemigos decorativos pegados a los bordes, lejos del botón.
       for (let i = 0; i < this.decorations.length; i++) {
         const enemy = this.decorations[i];
@@ -1061,10 +1083,25 @@ namespace SpaceEaters {
         this.startGame();
       });
 
+      this.exitButton.setInteractive({ useHandCursor: true });
+
+      this.exitButton.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => {
+        this.exitButton.setFillStyle(PALETTE.darkBlue);
+        this.exitLabel.setColor(css(PALETTE.white));
+      });
+
+      this.exitButton.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => {
+        this.exitButton.setFillStyle(0x000000);
+        this.exitLabel.setColor(css(PALETTE.lavender));
+      });
+
+      this.exitButton.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => exitToShowcase());
+
       const keyboard = this.input.keyboard;
       if (keyboard) {
         keyboard.on('keydown-ENTER', () => this.startGame());
         keyboard.on('keydown-SPACE', () => this.startGame());
+        keyboard.on('keydown-ESC', () => exitToShowcase());
       }
     }
 
@@ -1135,6 +1172,7 @@ namespace SpaceEaters {
     private gameOver = false;
     private spawnTimer: Phaser.Time.TimerEvent | null = null;
     private pauseOverlay: Phaser.GameObjects.Text | null = null;
+    private pauseHint: Phaser.GameObjects.Text | null = null;
 
     public constructor() {
       super('Game');
@@ -1152,6 +1190,7 @@ namespace SpaceEaters {
       this.paused = false;
       this.gameOver = false;
       this.pauseOverlay = null;
+      this.pauseHint = null;
 
       this.sfx = new Sfx();
       this.sfx.unlock();
@@ -1209,7 +1248,11 @@ namespace SpaceEaters {
       }
 
       if (this.pauseOverlay) {
-        this.pauseOverlay.setPosition(this.worldWidth / 2, this.worldHeight / 2);
+        this.pauseOverlay.setPosition(this.worldWidth / 2, this.worldHeight / 2 - 8);
+      }
+
+      if (this.pauseHint) {
+        this.pauseHint.setPosition(this.worldWidth / 2, this.worldHeight / 2 + 10);
       }
 
       this.refreshTextResolution();
@@ -1238,6 +1281,14 @@ namespace SpaceEaters {
 
       keyboard.on('keydown-P', () => this.togglePause());
       keyboard.on('keydown-ESC', () => this.togglePause());
+
+      // Q solo sale si la partida está en pausa: así no se abandona la partida
+      // por pulsar una tecla de movimiento sin querer.
+      keyboard.on('keydown-Q', () => {
+        if (this.paused) {
+          exitToShowcase();
+        }
+      });
       keyboard.on('keydown-M', () => {
         const muted = this.sfx.toggleMute();
         this.flashMessage(muted ? 'SILENCIO' : 'SONIDO ON');
@@ -1507,18 +1558,31 @@ namespace SpaceEaters {
         this.time.paused = true;
         this.pauseOverlay = this.createText(
           this.worldWidth / 2,
-          this.worldHeight / 2,
+          this.worldHeight / 2 - 8,
           'PAUSA',
           16,
           PALETTE.yellow
         );
         this.pauseOverlay.setDepth(200);
+
+        // Sin esto, el juego a pantalla completa no tendría salida.
+        this.pauseHint = this.createText(
+          this.worldWidth / 2,
+          this.worldHeight / 2 + 10,
+          'P CONTINUAR    Q SALIR',
+          6,
+          PALETTE.lightGrey
+        );
+        this.pauseHint.setDepth(200);
+
         this.refreshTextResolution();
       } else {
         this.physics.resume();
         this.time.paused = false;
         this.pauseOverlay?.destroy();
         this.pauseOverlay = null;
+        this.pauseHint?.destroy();
+        this.pauseHint = null;
       }
     }
 
