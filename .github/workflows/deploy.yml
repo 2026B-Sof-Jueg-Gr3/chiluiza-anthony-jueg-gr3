@@ -1,0 +1,30 @@
+name: Deploy to itch.io
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v3
+
+      - name: Preparar archivos del juego
+        run: |
+          mkdir build
+          cp index.html juego.html game.js build/
+          cp -r assets build/
+          cp pico8_invaders_*.png build/ || true
+
+      - name: Publicar en itch.io mediante Butler
+        uses: josephbmanley/butler-publish-itchio-action@master
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        with:
+          channel: html5
+          itch_user: anthonyhc
+          itch_game: invasores-hambrientos
+          package: ./build
